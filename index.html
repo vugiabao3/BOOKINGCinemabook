@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CinemaBook - Đặt vé xem phim online</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .seat {
+            width: 32px;
+            height: 32px;
+            margin: 2px;
+            border-radius: 8px 8px 2px 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .seat.available { background: #e5e7eb; color: #374151; }
+        .seat.selected { background: #3b82f6; color: white; }
+        .seat.reserved { background: #ef4444; color: white; cursor: not-allowed; }
+        .seat.vip { background: #fbbf24; color: #92400e; }
+        .seat.vip.selected { background: #f59e0b; color: white; }
+        
+        .screen {
+            background: linear-gradient(45deg, #1f2937, #374151);
+            border-radius: 50px;
+            height: 20px;
+            margin: 20px auto;
+            position: relative;
+        }
+        .screen::after {
+            content: 'MÀN HÌNH';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .movie-card {
+            transition: transform 0.2s;
+        }
+        .movie-card:hover {
+            transform: translateY(-4px);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .qr-code {
+            width: 120px;
+            height: 120px;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="white"/><rect x="10" y="10" width="10" height="10" fill="black"/><rect x="30" y="10" width="10" height="10" fill="black"/><rect x="50" y="10" width="10" height="10" fill="black"/><rect x="70" y="10" width="10" height="10" fill="black"/><rect x="10" y="30" width="10" height="10" fill="black"/><rect x="50" y="30" width="10" height="10" fill="black"/><rect x="70" y="30" width="10" height="10" fill="black"/><rect x="10" y="50" width="10" height="10" fill="black"/><rect x="30" y="50" width="10" height="10" fill="black"/><rect x="70" y="50" width="10" height="10" fill="black"/><rect x="10" y="70" width="10" height="10" fill="black"/><rect x="30" y="70" width="10" height="10" fill="black"/><rect x="50" y="70" width="10" height="10" fill="black"/><rect x="70" y="70" width="10" height="10" fill="black"/></svg>') center/contain no-repeat;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-2xl font-bold text-blue-600 cursor-pointer" onclick="showPage('home')">
+                        🎬 CinemaBook
+                    </h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="hidden md:flex items-center bg-gray-100 rounded-lg px-3 py-2">
+                        <i class="fas fa-search text-gray-400 mr-2"></i>
+                        <input type="text" placeholder="Tìm phim, rạp..." class="bg-transparent outline-none text-sm">
+                    </div>
+                    <button onclick="showPage('profile')" class="flex items-center space-x-2 text-gray-600 hover:text-blue-600">
+                        <i class="fas fa-user"></i>
+                        <span class="hidden md:inline">Tài khoản</span>
+                    </button>
+                    <button onclick="showPage('admin')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
+                        Admin
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-4 py-6">
+        <!-- Home Page -->
+        <div id="home-page" class="page">
+            <!-- Hero Banner -->
+            <div class="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-8 text-white mb-8">
+                <div class="flex flex-col md:flex-row items-center">
+                    <div class="flex-1 mb-6 md:mb-0">
+                        <h2 class="text-3xl md:text-4xl font-bold mb-4">Phim Hot Tuần Này</h2>
+                        <p class="text-lg opacity-90 mb-6">Avatar: The Way of Water - Hành trình kỳ diệu dưới đại dương</p>
+                        <button onclick="showMovieDetail('avatar')" class="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100">
+                            Đặt vé ngay
+                        </button>
+                    </div>
+                    <div class="w-full md:w-80 h-48 bg-black/20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-play-circle text-6xl opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date Selector -->
+            <div class="mb-6">
+                <h3 class="text-xl font-bold mb-4">Lịch chiếu hôm nay</h3>
+                <div class="flex space-x-2 overflow-x-auto pb-2">
+                    <button class="date-btn active bg-blue-600 text-white px-4 py-2 rounded-lg whitespace-nowrap" onclick="selectDate(this, '2024-01-15')">
+                        Hôm nay<br><span class="text-sm">15/01</span>
+                    </button>
+                    <button class="date-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg whitespace-nowrap" onclick="selectDate(this, '2024-01-16')">
+                        Thứ 2<br><span class="text-sm">16/01</span>
+                    </button>
+                    <button class="date-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg whitespace-nowrap" onclick="selectDate(this, '2024-01-17')">
+                        Thứ 3<br><span class="text-sm">17/01</span>
+                    </button>
+                    <button class="date-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg whitespace-nowrap" onclick="selectDate(this, '2024-01-18')">
+                        Thứ 4<br><span class="text-sm">18/01</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Movies Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="movie-card bg-white rounded-lg shadow-md overflow-hidden cursor-pointer" onclick="showMovieDetail('avatar')">
+                    <div class="h-64 bg-gradient-to-b from-blue-400 to-blue-600 flex items-center justify-center">
+                        <span class="text-white text-4xl">🌊</span>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-bold mb-2">Avatar 2</h4>
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <span>⭐ 8.5</span>
+                            <span>192 phút</span>
+                        </div>
+                        <div class="mt-2 text-sm text-blue-600 font-semibold">
+                            Từ 120.000đ
+                        </div>
+                    </div>
+                </div>
+
+                <div class="movie-card bg-white rounded-lg shadow-md overflow-hidden cursor-pointer" onclick="showMovieDetail('spiderman')">
+                    <div class="h-64 bg-gradient-to-b from-red-400 to-red-600 flex items-center justify-center">
+                        <span class="text-white text-4xl">🕷️</span>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-bold mb-2">Spider-Man</h4>
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <span>⭐ 9.2</span>
+                            <span>148 phút</span>
+                        </div>
+                        <div class="mt-2 text-sm text-blue-600 font-semibold">
+                            Từ 110.000đ
+                        </div>
+                    </div>
+                </div>
+
+                <div class="movie-card bg-white rounded-lg shadow-md overflow-hidden cursor-pointer" onclick="showMovieDetail('batman')">
+                    <div class="h-64 bg-gradient-to-b from-gray-700 to-black flex items-center justify-center">
+                        <span class="text-white text-4xl">🦇</span>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-bold mb-2">The Batman</h4>
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <span>⭐ 8.8</span>
+                            <span>176 phút</span>
+                        </div>
+                        <div class="mt-2 text-sm text-blue-600 font-semibold">
+                            Từ 130.000đ
+                        </div>
+                    </div>
+                </div>
+
+                <div class="movie-card bg-white rounded-lg shadow-md overflow-hidden cursor-pointer" onclick="showMovieDetail('topgun')">
+                    <div class="h-64 bg-gradient-to-b from-orange-400 to-orange-600 flex items-center justify-center">
+                        <span class="text-white text-4xl">✈️</span>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-bold mb-2">Top Gun</h4>
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <span>⭐ 9.0</span>
+                            <span>131 phút</span>
+                        </div>
+                        <div class="mt-2 text-sm text-blue-600 font-semibold">
+                            Từ 115.000đ
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Movie Detail Page -->
+        <div id="movie-detail-page" class="page hidden">
+            <button onclick="showPage('home')" class="flex items-center text-gray-600 hover:text-blue-600 mb-6">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Quay lại
+            </button>
+
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="md:flex">
+                    <div class="md:w-1/3">
+                        <div id="movie-poster" class="h-96 bg-gradient-to-b from-blue-400 to-blue-600 flex items-center justify-center">
+                            <span class="text-white text-6xl">🌊</span>
+                        </div>
+                    </div>
+                    <div class="md:w-2/3 p-6">
+                        <h2 id="movie-title" class="text-3xl font-bold mb-4">Avatar: The Way of Water</h2>
+                        <div class="flex items-center space-x-4 mb-4">
+                            <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm">⭐ 8.5</span>
+                            <span class="text-gray-600">192 phút</span>
+                            <span class="text-gray-600">Khoa học viễn tưởng</span>
+                        </div>
+                        <p id="movie-description" class="text-gray-700 mb-6">
+                            Gia đình Sully phải rời khỏi nhà và khám phá các vùng của Pandora. Khi một mối đe dọa cũ trở lại để hoàn thành nhiệm vụ trước đây, Jake phải hợp tác với Neytiri và quân đội của chủng tộc Na'vi để bảo vệ hành tinh của họ.
+                        </p>
+                        
+                        <!-- Theater Selection -->
+                        <div class="mb-6">
+                            <h3 class="text-lg font-bold mb-3">Chọn rạp chiếu</h3>
+                            <div class="space-y-3">
+                                <div class="theater-option border rounded-lg p-4 cursor-pointer hover:border-blue-500" onclick="selectTheater(this, 'cgv-landmark')">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h4 class="font-semibold">CGV Landmark 81</h4>
+                                            <p class="text-sm text-gray-600">Vinhomes Central Park, Bình Thạnh</p>
+                                        </div>
+                                        <span class="text-blue-600 font-semibold">Từ 120.000đ</span>
+                                    </div>
+                                    <div class="mt-3 flex flex-wrap gap-2">
+                                        <button class="showtime-btn bg-gray-100 hover:bg-blue-100 px-3 py-1 rounded text-sm" onclick="selectShowtime(event, '14:30')">14:30</button>
+                                        <button class="showtime-btn bg-gray-100 hover:bg-blue-100 px-3 py-1 rounded text-sm" onclick="selectShowtime(event, '17:15')">17:15</button>
+                                        <button class="showtime-btn bg-gray-100 hover:bg-blue-100 px-3 py-1 rounded text-sm" onclick="selectShowtime(event, '20:00')">20:00</button>
+                                        <button class="showtime-btn bg-gray-100 hover:bg-blue-100 px-3 py-1 rounded text-sm" onclick="selectShowtime(event, '22:45')">22:45</button>
+                                    </div>
+                                </div>
+
+                                <div class="theater-option border rounded-lg p-4 cursor-pointer hover:border-blue-500" onclick="selectTheater(this, 'lotte-nowzone')">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h4 class="font-semibold">Lotte Cinema Nowzone</h4>
+                                            <p class="text-sm text-gray-600">Nguyễn Văn Cừ, Quận 1</p>
+                                        </div>
+                                        <span class="text-blue-600 font-semibold">Từ 110.000đ</span>
+                                    </div>
+                                    <div class="mt-3 flex flex-wrap gap-2">
+                                        <button class="showtime-btn bg-gray-100 hover:bg-blue-100 px-3 py-1 rounded text-sm" onclick="selectShowtime(event, '13:45')">13:45</button>
+                                        <button class="showtime-btn bg-gray-100 hover:bg-blue-100 px-3 py-1 rounded text-sm" onclick="selectShowtime(event, '16:30')">16:30</button>
+                                        <button class="showtime-btn bg-gray-100 hover:bg-blue-100 px-3 py-1 rounded text-sm" onclick="selectShowtime(event, '19:15')">19:15</button>
+                                        <button class="showtime-btn bg-gray-100 hover:bg-blue-100 px-3 py-1 rounded text-sm" onclick="selectShowtime(event, '22:00')">22:00</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="continue-booking-btn" onclick="showSeatSelection()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
+                            Tiếp tục đặt vé
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seat Selection Page -->
+        <div id="seat-selection-page" class="page hidden">
+            <button onclick="showMovieDetail(currentMovie)" class="flex items-center text-gray-600 hover:text-blue-600 mb-6">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Quay lại
+            </button>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold mb-2">Chọn ghế ngồi</h2>
+                    <div class="text-gray-600">
+                        <span id="selected-movie">Avatar 2</span> • 
+                        <span id="selected-theater">CGV Landmark 81</span> • 
+                        <span id="selected-showtime">20:00</span>
+                    </div>
+                </div>
+
+                <!-- Screen -->
+                <div class="screen mb-8"></div>
+
+                <!-- Seat Map -->
+                <div class="seat-map mb-6">
+                    <div class="text-center mb-4">
+                        <div class="inline-flex items-center space-x-6 text-sm">
+                            <div class="flex items-center">
+                                <div class="seat available mr-2"></div>
+                                <span>Trống</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="seat selected mr-2"></div>
+                                <span>Đang chọn</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="seat reserved mr-2"></div>
+                                <span>Đã đặt</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="seat vip mr-2"></div>
+                                <span>VIP</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="max-w-md mx-auto">
+                        <!-- Row A -->
+                        <div class="flex justify-center mb-2">
+                            <span class="w-8 text-center text-sm font-bold">A</span>
+                            <div class="seat available" onclick="toggleSeat(this, 'A1', 120000)">1</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'A2', 120000)">2</div>
+                            <div class="seat reserved" onclick="toggleSeat(this, 'A3', 120000)">3</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'A4', 120000)">4</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'A5', 120000)">5</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'A6', 120000)">6</div>
+                            <div class="seat reserved" onclick="toggleSeat(this, 'A7', 120000)">7</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'A8', 120000)">8</div>
+                        </div>
+
+                        <!-- Row B -->
+                        <div class="flex justify-center mb-2">
+                            <span class="w-8 text-center text-sm font-bold">B</span>
+                            <div class="seat available" onclick="toggleSeat(this, 'B1', 120000)">1</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'B2', 120000)">2</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'B3', 120000)">3</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'B4', 120000)">4</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'B5', 120000)">5</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'B6', 120000)">6</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'B7', 120000)">7</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'B8', 120000)">8</div>
+                        </div>
+
+                        <!-- Row C (VIP) -->
+                        <div class="flex justify-center mb-2">
+                            <span class="w-8 text-center text-sm font-bold">C</span>
+                            <div class="seat vip" onclick="toggleSeat(this, 'C1', 180000)">1</div>
+                            <div class="seat vip" onclick="toggleSeat(this, 'C2', 180000)">2</div>
+                            <div class="seat vip" onclick="toggleSeat(this, 'C3', 180000)">3</div>
+                            <div class="seat vip" onclick="toggleSeat(this, 'C4', 180000)">4</div>
+                            <div class="seat vip" onclick="toggleSeat(this, 'C5', 180000)">5</div>
+                            <div class="seat vip" onclick="toggleSeat(this, 'C6', 180000)">6</div>
+                            <div class="seat vip" onclick="toggleSeat(this, 'C7', 180000)">7</div>
+                            <div class="seat vip" onclick="toggleSeat(this, 'C8', 180000)">8</div>
+                        </div>
+
+                        <!-- Row D -->
+                        <div class="flex justify-center mb-2">
+                            <span class="w-8 text-center text-sm font-bold">D</span>
+                            <div class="seat available" onclick="toggleSeat(this, 'D1', 120000)">1</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'D2', 120000)">2</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'D3', 120000)">3</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'D4', 120000)">4</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'D5', 120000)">5</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'D6', 120000)">6</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'D7', 120000)">7</div>
+                            <div class="seat available" onclick="toggleSeat(this, 'D8', 120000)">8</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Booking Summary -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <span>Ghế đã chọn:</span>
+                        <span id="selected-seats-display">Chưa chọn ghế</span>
+                    </div>
+                    <div class="flex justify-between items-center text-lg font-bold">
+                        <span>Tổng tiền:</span>
+                        <span id="total-price" class="text-blue-600">0đ</span>
+                    </div>
+                </div>
+
+                <button id="proceed-payment-btn" onclick="showCheckout()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
+                    Tiến hành thanh toán
+                </button>
+            </div>
+        </div>
+
+        <!-- Checkout Page -->
+        <div id="checkout-page" class="page hidden">
+            <button onclick="showSeatSelection()" class="flex items-center text-gray-600 hover:text-blue-600 mb-6">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Quay lại
+            </button>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Order Summary -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold mb-4">Thông tin đặt vé</h3>
+                    
+                    <div class="space-y-3 mb-6">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Phim:</span>
+                            <span id="checkout-movie">Avatar 2</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Rạp:</span>
+                            <span id="checkout-theater">CGV Landmark 81</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Suất chiếu:</span>
+                            <span id="checkout-showtime">20:00 - 15/01/2024</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Ghế:</span>
+                            <span id="checkout-seats">A1, A2</span>
+                        </div>
+                    </div>
+
+                    <div class="border-t pt-4">
+                        <div class="flex justify-between mb-2">
+                            <span>Tiền vé:</span>
+                            <span id="checkout-subtotal">240.000đ</span>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span>Phí dịch vụ:</span>
+                            <span>10.000đ</span>
+                        </div>
+                        <div class="flex justify-between text-lg font-bold text-blue-600">
+                            <span>Tổng cộng:</span>
+                            <span id="checkout-total">250.000đ</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Form -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold mb-4">Thông tin thanh toán</h3>
+                    
+                    <form id="payment-form">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">Họ và tên *</label>
+                            <input type="text" id="customer-name" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">Email *</label>
+                            <input type="email" id="customer-email" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">Số điện thoại *</label>
+                            <input type="tel" id="customer-phone" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500" required>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2">Phương thức thanh toán</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" name="payment-method" value="vnpay" class="mr-2" checked>
+                                    <span>💳 VNPay</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="payment-method" value="momo" class="mr-2">
+                                    <span>📱 MoMo</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="payment-method" value="banking" class="mr-2">
+                                    <span>🏦 Internet Banking</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="terms-checkbox" class="mr-2" required>
+                                <span class="text-sm">Tôi đồng ý với <a href="#" class="text-blue-600">điều khoản sử dụng</a></span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700">
+                            Thanh toán 250.000đ
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- E-Ticket Page -->
+        <div id="ticket-page" class="page hidden">
+            <div class="max-w-md mx-auto">
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <!-- Ticket Header -->
+                    <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 text-center">
+                        <h2 class="text-2xl font-bold mb-2">🎬 CinemaBook</h2>
+                        <p class="text-blue-100">Vé điện tử</p>
+                    </div>
+
+                    <!-- Ticket Body -->
+                    <div class="p-6">
+                        <div class="text-center mb-6">
+                            <div class="qr-code mx-auto mb-4"></div>
+                            <p class="text-sm text-gray-600">Mã vé: <span class="font-mono font-bold">CB240115001</span></p>
+                        </div>
+
+                        <div class="space-y-3 mb-6">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Phim:</span>
+                                <span class="font-semibold">Avatar 2</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Rạp:</span>
+                                <span class="font-semibold">CGV Landmark 81</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Phòng:</span>
+                                <span class="font-semibold">Cinema 3</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Suất chiếu:</span>
+                                <span class="font-semibold">20:00 - 15/01/2024</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Ghế:</span>
+                                <span class="font-semibold">A1, A2</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Tổng tiền:</span>
+                                <span class="font-semibold text-blue-600">250.000đ</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                            <p class="text-sm text-yellow-800">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                Vui lòng đến rạp trước 15 phút và xuất trình mã QR này tại quầy vé.
+                            </p>
+                        </div>
+
+                        <div class="space-y-3">
+                            <button onclick="downloadTicket()" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+                                <i class="fas fa-download mr-2"></i>
+                                Tải vé về máy
+                            </button>
+                            <button onclick="showPage('profile')" class="w-full bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">
+                                Xem lịch sử đặt vé
+                            </button>
+                            <button onclick="showPage('home')" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">
+                                Đặt vé khác
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Page -->
+        <div id="profile-page" class="page hidden">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4">Tài khoản của tôi</h2>
+                <div class="flex items-center space-x-4 mb-6">
+                    <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl">
+                        👤
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold">Nguyễn Văn A</h3>
+                        <p class="text-gray-600">nguyenvana@email.com</p>
+                        <p class="text-sm text-blue-600">Thành viên Bạc • 1,250 điểm</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Booking History -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold mb-4">Lịch sử đặt vé</h3>
+                    <div class="space-y-4">
+                        <div class="border rounded-lg p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-semibold">Avatar 2</h4>
+                                <span class="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">Đã thanh toán</span>
+                            </div>
+                            <p class="text-sm text-gray-600">CGV Landmark 81 • 20:00 - 15/01/2024</p>
+                            <p class="text-sm text-gray-600">Ghế: A1, A2 • 250.000đ</p>
+                            <button onclick="showTicket()" class="mt-2 text-blue-600 text-sm hover:underline">
+                                Xem vé điện tử
+                            </button>
+                        </div>
+
+                        <div class="border rounded-lg p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-semibold">Spider-Man</h4>
+                                <span class="text-sm bg-gray-100 text-gray-800 px-2 py-1 rounded">Đã xem</span>
+                            </div>
+                            <p class="text-sm text-gray-600">Lotte Nowzone • 19:30 - 10/01/2024</p>
+                            <p class="text-sm text-gray-600">Ghế: B5, B6 • 220.000đ</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loyalty & Vouchers -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold mb-4">Ưu đãi & Voucher</h3>
+                    <div class="space-y-4">
+                        <div class="bg-gradient-to-r from-yellow-400 to-orange-400 rounded-lg p-4 text-white">
+                            <h4 class="font-bold mb-2">🎉 Giảm 20%</h4>
+                            <p class="text-sm">Áp dụng cho vé xem phim cuối tuần</p>
+                            <p class="text-xs mt-2">HSD: 31/01/2024</p>
+                        </div>
+
+                        <div class="bg-gradient-to-r from-blue-400 to-purple-400 rounded-lg p-4 text-white">
+                            <h4 class="font-bold mb-2">🍿 Combo miễn phí</h4>
+                            <p class="text-sm">Bắp rang + nước ngọt size M</p>
+                            <p class="text-xs mt-2">HSD: 28/02/2024</p>
+                        </div>
+
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                            <p class="text-gray-500">Đặt thêm 2 vé để nhận voucher mới!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Page -->
+        <div id="admin-page" class="page hidden">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold mb-4">Quản trị hệ thống</h2>
+                <div class="flex space-x-4 mb-6">
+                    <button onclick="showAdminSection('movies')" class="admin-tab-btn active bg-blue-600 text-white px-4 py-2 rounded-lg">
+                        Quản lý phim
+                    </button>
+                    <button onclick="showAdminSection('showtimes')" class="admin-tab-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">
+                        Lịch chiếu
+                    </button>
+                    <button onclick="showAdminSection('theaters')" class="admin-tab-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">
+                        Rạp chiếu
+                    </button>
+                    <button onclick="showAdminSection('reports')" class="admin-tab-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">
+                        Báo cáo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Movies Management -->
+            <div id="admin-movies" class="admin-section">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold">Danh sách phim</h3>
+                        <button onclick="showAddMovieForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-plus mr-2"></i>Thêm phim mới
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left">Tên phim</th>
+                                    <th class="px-4 py-3 text-left">Thể loại</th>
+                                    <th class="px-4 py-3 text-left">Thời lượng</th>
+                                    <th class="px-4 py-3 text-left">Rating</th>
+                                    <th class="px-4 py-3 text-left">Trạng thái</th>
+                                    <th class="px-4 py-3 text-left">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                <tr>
+                                    <td class="px-4 py-3">Avatar: The Way of Water</td>
+                                    <td class="px-4 py-3">Khoa học viễn tưởng</td>
+                                    <td class="px-4 py-3">192 phút</td>
+                                    <td class="px-4 py-3">8.5/10</td>
+                                    <td class="px-4 py-3">
+                                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">Đang chiếu</span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <button class="text-blue-600 hover:underline mr-2">Sửa</button>
+                                        <button class="text-red-600 hover:underline">Xóa</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3">Spider-Man: No Way Home</td>
+                                    <td class="px-4 py-3">Hành động</td>
+                                    <td class="px-4 py-3">148 phút</td>
+                                    <td class="px-4 py-3">9.2/10</td>
+                                    <td class="px-4 py-3">
+                                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">Đang chiếu</span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <button class="text-blue-600 hover:underline mr-2">Sửa</button>
+                                        <button class="text-red-600 hover:underline">Xóa</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Showtimes Management -->
+            <div id="admin-showtimes" class="admin-section hidden">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold">Quản lý lịch chiếu</h3>
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-plus mr-2"></i>Thêm suất chiếu
+                        </button>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-bold mb-3">Hôm nay - 15/01/2024</h4>
+                            <div class="space-y-3">
+                                <div class="border rounded-lg p-4">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h5 class="font-semibold">Avatar 2</h5>
+                                        <span class="text-sm text-gray-600">CGV Landmark 81</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">14:30</span>
+                                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">17:15</span>
+                                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">20:00</span>
+                                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">22:45</span>
+                                    </div>
+                                </div>
+
+                                <div class="border rounded-lg p-4">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h5 class="font-semibold">Spider-Man</h5>
+                                        <span class="text-sm text-gray-600">Lotte Nowzone</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">13:45</span>
+                                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">16:30</span>
+                                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">19:15</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="font-bold mb-3">Thống kê đặt vé</h4>
+                            <div class="space-y-3">
+                                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                    <div class="flex justify-between items-center">
+                                        <span>Avatar 2 - 20:00</span>
+                                        <span class="font-bold text-green-600">85% (68/80 ghế)</span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                    <div class="flex justify-between items-center">
+                                        <span>Spider-Man - 19:15</span>
+                                        <span class="font-bold text-yellow-600">60% (48/80 ghế)</span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                    <div class="flex justify-between items-center">
+                                        <span>Batman - 22:30</span>
+                                        <span class="font-bold text-red-600">25% (20/80 ghế)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports -->
+            <div id="admin-reports" class="admin-section hidden">
+                <div class="grid md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600 text-sm">Doanh thu hôm nay</p>
+                                <p class="text-2xl font-bold text-green-600">12.5M đ</p>
+                            </div>
+                            <div class="text-3xl text-green-600">💰</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600 text-sm">Vé đã bán</p>
+                                <p class="text-2xl font-bold text-blue-600">156</p>
+                            </div>
+                            <div class="text-3xl text-blue-600">🎫</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600 text-sm">Tỷ lệ lấp đầy</p>
+                                <p class="text-2xl font-bold text-purple-600">73%</p>
+                            </div>
+                            <div class="text-3xl text-purple-600">📊</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold mb-4">Top phim bán chạy</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-4 border rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                <span class="text-2xl">🥇</span>
+                                <div>
+                                    <h4 class="font-semibold">Avatar: The Way of Water</h4>
+                                    <p class="text-sm text-gray-600">89 vé • 4.2M đ</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="w-32 bg-gray-200 rounded-full h-2">
+                                    <div class="bg-blue-600 h-2 rounded-full" style="width: 89%"></div>
+                                </div>
+                                <span class="text-sm text-gray-600">89%</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-4 border rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                <span class="text-2xl">🥈</span>
+                                <div>
+                                    <h4 class="font-semibold">Spider-Man: No Way Home</h4>
+                                    <p class="text-sm text-gray-600">67 vé • 3.1M đ</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="w-32 bg-gray-200 rounded-full h-2">
+                                    <div class="bg-red-600 h-2 rounded-full" style="width: 67%"></div>
+                                </div>
+                                <span class="text-sm text-gray-600">67%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="grid md:grid-cols-4 gap-6">
+                <div>
+                    <h3 class="text-lg font-bold mb-4">🎬 CinemaBook</h3>
+                    <p class="text-gray-400 text-sm">Hệ thống đặt vé xem phim trực tuyến hàng đầu Việt Nam</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-3">Rạp chiếu</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li>CGV Landmark 81</li>
+                        <li>Lotte Cinema Nowzone</li>
+                        <li>Galaxy Nguyễn Du</li>
+                        <li>BHD Star Bitexco</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-3">Hỗ trợ</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li>Hotline: 1900 1234</li>
+                        <li>Email: support@cinemabook.vn</li>
+                        <li>Điều khoản sử dụng</li>
+                        <li>Chính sách bảo mật</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-3">Kết nối</h4>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white">📘</a>
+                        <a href="#" class="text-gray-400 hover:text-white">📷</a>
+                        <a href="#" class="text-gray-400 hover:text-white">🐦</a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-6 pt-6 text-center text-sm text-gray-400">
+                © 2024 CinemaBook. Tất cả quyền được bảo lưu.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Global state
+        let currentMovie = '';
+        let selectedTheater = '';
+        let selectedShowtime = '';
+        let selectedSeats = [];
+        let totalPrice = 0;
+
+        // Page navigation
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.add('hidden');
+            });
+            document.getElementById(pageId + '-page').classList.remove('hidden');
+            document.getElementById(pageId + '-page').classList.add('fade-in');
+        }
+
+        // Date selection
+        function selectDate(btn, date) {
+            document.querySelectorAll('.date-btn').forEach(b => {
+                b.classList.remove('active', 'bg-blue-600', 'text-white');
+                b.classList.add('bg-gray-200', 'text-gray-700');
+            });
+            btn.classList.add('active', 'bg-blue-600', 'text-white');
+            btn.classList.remove('bg-gray-200', 'text-gray-700');
+        }
+
+        // Movie detail
+        function showMovieDetail(movieId) {
+            currentMovie = movieId;
+            const movies = {
+                'avatar': {
+                    title: 'Avatar: The Way of Water',
+                    poster: '🌊',
+                    description: 'Gia đình Sully phải rời khỏi nhà và khám phá các vùng của Pandora. Khi một mối đe dọa cũ trở lại để hoàn thành nhiệm vụ trước đây, Jake phải hợp tác với Neytiri và quân đội của chủng tộc Na\'vi để bảo vệ hành tinh của họ.'
+                },
+                'spiderman': {
+                    title: 'Spider-Man: No Way Home',
+                    poster: '🕷️',
+                    description: 'Peter Parker phải đối mặt với những kẻ thù từ các vũ trụ khác nhau khi danh tính Spider-Man của anh bị tiết lộ.'
+                },
+                'batman': {
+                    title: 'The Batman',
+                    poster: '🦇',
+                    description: 'Batman phải đối mặt với Riddler, một kẻ giết người hàng loạt nhắm vào giới tinh hoa của Gotham City.'
+                },
+                'topgun': {
+                    title: 'Top Gun: Maverick',
+                    poster: '✈️',
+                    description: 'Sau hơn ba mười năm phục vụ như một trong những phi công hàng đầu của Hải quân, Pete "Maverick" Mitchell đang ở nơi anh thuộc về.'
+                }
+            };
+
+            const movie = movies[movieId];
+            if (movie) {
+                document.getElementById('movie-title').textContent = movie.title;
+                document.getElementById('movie-description').textContent = movie.description;
+                document.getElementById('movie-poster').innerHTML = `<span class="text-white text-6xl">${movie.poster}</span>`;
+            }
+
+            showPage('movie-detail');
+        }
+
+        // Theater selection
+        function selectTheater(element, theaterId) {
+            document.querySelectorAll('.theater-option').forEach(option => {
+                option.classList.remove('border-blue-500', 'bg-blue-50');
+            });
+            element.classList.add('border-blue-500', 'bg-blue-50');
+            selectedTheater = theaterId;
+            updateContinueButton();
+        }
+
+        // Showtime selection
+        function selectShowtime(event, time) {
+            event.stopPropagation();
+            document.querySelectorAll('.showtime-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('bg-gray-100');
+            });
+            event.target.classList.add('bg-blue-600', 'text-white');
+            event.target.classList.remove('bg-gray-100');
+            selectedShowtime = time;
+            updateContinueButton();
+        }
+
+        function updateContinueButton() {
+            const btn = document.getElementById('continue-booking-btn');
+            if (selectedTheater && selectedShowtime) {
+                btn.disabled = false;
+            } else {
+                btn.disabled = true;
+            }
+        }
+
+        // Seat selection
+        function showSeatSelection() {
+            document.getElementById('selected-movie').textContent = document.getElementById('movie-title').textContent;
+            document.getElementById('selected-theater').textContent = selectedTheater === 'cgv-landmark' ? 'CGV Landmark 81' : 'Lotte Nowzone';
+            document.getElementById('selected-showtime').textContent = selectedShowtime;
+            showPage('seat-selection');
+        }
+
+        function toggleSeat(element, seatId, price) {
+            if (element.classList.contains('reserved')) return;
+
+            if (element.classList.contains('selected')) {
+                // Deselect seat
+                element.classList.remove('selected');
+                selectedSeats = selectedSeats.filter(seat => seat.id !== seatId);
+                totalPrice -= price;
+            } else {
+                // Select seat (max 8 seats)
+                if (selectedSeats.length >= 8) {
+                    alert('Bạn chỉ có thể chọn tối đa 8 ghế');
+                    return;
+                }
+                element.classList.add('selected');
+                selectedSeats.push({ id: seatId, price: price });
+                totalPrice += price;
+            }
+
+            updateSeatDisplay();
+        }
+
+        function updateSeatDisplay() {
+            const seatsDisplay = document.getElementById('selected-seats-display');
+            const totalPriceDisplay = document.getElementById('total-price');
+            const proceedBtn = document.getElementById('proceed-payment-btn');
+
+            if (selectedSeats.length === 0) {
+                seatsDisplay.textContent = 'Chưa chọn ghế';
+                totalPriceDisplay.textContent = '0đ';
+                proceedBtn.disabled = true;
+            } else {
+                seatsDisplay.textContent = selectedSeats.map(seat => seat.id).join(', ');
+                totalPriceDisplay.textContent = totalPrice.toLocaleString('vi-VN') + 'đ';
+                proceedBtn.disabled = false;
+            }
+        }
+
+        // Checkout
+        function showCheckout() {
+            document.getElementById('checkout-movie').textContent = document.getElementById('movie-title').textContent;
+            document.getElementById('checkout-theater').textContent = document.getElementById('selected-theater').textContent;
+            document.getElementById('checkout-showtime').textContent = selectedShowtime + ' - 15/01/2024';
+            document.getElementById('checkout-seats').textContent = selectedSeats.map(seat => seat.id).join(', ');
+            document.getElementById('checkout-subtotal').textContent = totalPrice.toLocaleString('vi-VN') + 'đ';
+            document.getElementById('checkout-total').textContent = (totalPrice + 10000).toLocaleString('vi-VN') + 'đ';
+            showPage('checkout');
+        }
+
+        // Payment processing
+        document.getElementById('payment-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Simulate payment processing
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.textContent = 'Đang xử lý...';
+            submitBtn.disabled = true;
+
+            setTimeout(() => {
+                showTicket();
+            }, 2000);
+        });
+
+        function showTicket() {
+            showPage('ticket');
+        }
+
+        function downloadTicket() {
+            alert('Vé đã được tải về máy! (Demo - chức năng thực tế sẽ tải file PDF)');
+        }
+
+        // Admin functions
+        function showAdminSection(section) {
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-blue-600', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-700');
+            });
+            event.target.classList.add('active', 'bg-blue-600', 'text-white');
+            event.target.classList.remove('bg-gray-200', 'text-gray-700');
+
+            document.querySelectorAll('.admin-section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.getElementById('admin-' + section).classList.remove('hidden');
+        }
+
+        function showAddMovieForm() {
+            alert('Chức năng thêm phim mới (Demo - sẽ mở form thêm phim)');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            showPage('home');
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'976daa3a740dfd2b',t:'MTc1NjQ4NzQ1OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
